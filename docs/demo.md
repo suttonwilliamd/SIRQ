@@ -23,6 +23,33 @@ messy state → semantic assessment → SIRQ event → deterministic policy
 
 The evaluator never receives a tool, shell, or restart capability. The policy engine only selects safe named dispositions.
 
+## Where it plugs in
+
+SIRQ is meant to sit beside tools developers already use, not replace them:
+
+```text
+Docker healthchecks ─┐
+GitHub Actions      ─┤
+webhooks / alerts   ─┼─→ SIRQ → record / dashboard / notify
+AI workers          ─┘
+```
+
+Concrete examples:
+
+- **Docker:** container is technically running, but request failures and latency are rising. SIRQ classifies a transient service degradation instead of paging immediately.
+- **GitHub Actions:** a scheduled build consumes a CPU-heavy runner. SIRQ recognizes the expected job context instead of treating high utilization as an incident.
+- **Webhooks:** an authentication endpoint returns `200 OK`, but the surrounding evidence suggests a credential anomaly. SIRQ escalates it.
+- **Coding agents:** an agent is blocked waiting for a permission boundary. SIRQ interrupts the orchestrator or human instead of forwarding every status update.
+
+The same observation contract handles all four sources; only the adapter changes. Try each concrete payload directly:
+
+```bash
+python -m sirq.cli evaluate examples/integrations/docker.json
+python -m sirq.cli evaluate examples/integrations/github-actions.json
+python -m sirq.cli evaluate examples/integrations/webhook.json
+python -m sirq.cli evaluate examples/integrations/coding-agent.json
+```
+
 ## Live HTTP version
 
 In one terminal:

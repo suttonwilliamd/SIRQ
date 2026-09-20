@@ -1,0 +1,11 @@
+{
+  "source": "coding-agent/17",
+  "type": "agent_state",
+  "observations": {
+    "status": "blocked",
+    "blocked": true,
+    "message": "needs human permission to continue",
+    "user_impact": 0.8
+  },
+  "context": {"orchestrator": "night-shift", "task": "update deployment manifest"}
+}

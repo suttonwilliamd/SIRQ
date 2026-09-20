@@ -1,0 +1,10 @@
+{
+  "source": "auth-webhook",
+  "type": "security",
+  "observations": {
+    "status": "running",
+    "security_relevant": true,
+    "message": "successful request with credential anomaly"
+  },
+  "context": {"endpoint": "/login", "http_status": 200}
+}

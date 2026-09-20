@@ -1,0 +1,12 @@
+{
+  "source": "github-actions",
+  "type": "ci_job",
+  "observations": {
+    "status": "running",
+    "cpu_percent": 95,
+    "scheduled_job": "nightly-video-transcode",
+    "failures_5m": 0
+  },
+  "history": {"normal_failures_5m": 1},
+  "context": {"workflow": "nightly-media"}
+}

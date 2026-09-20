@@ -130,10 +130,33 @@ def slide_decision(decision, headline, explanation, color):
     return image
 
 
+def slide_stack():
+    image, draw = base("Put it in the stack you already use", "SIRQ is a semantic layer, not a replacement for your tools")
+    cards = [
+        ("DOCKER", "container health", CYAN),
+        ("CI/CD", "failed jobs", GREEN),
+        ("WEBHOOKS", "tickets + alerts", AMBER),
+        ("AI AGENTS", "blocked workers", PURPLE),
+    ]
+    for i, (head, body, color) in enumerate(cards):
+        x = 52 + (i % 2) * 414
+        y = 145 + (i // 2) * 145
+        rounded(draw, (x, y, x + 365, y + 105), PANEL, outline=color)
+        text(draw, (x + 24, y + 27), head, color, F_HEAD)
+        text(draw, (x + 24, y + 68), body, TEXT, F_BODY)
+        text(draw, (x + 330, y + 52), "→", MUTED, F_HERO, anchor="mm")
+    rounded(draw, (52, 460, 848, 520), PANEL_2, outline=CYAN, radius=10)
+    text(draw, (78, 490), "raw event", MUTED, F_SMALL, anchor="lm")
+    text(draw, (285, 490), "SIRQ", CYAN, F_HEAD, anchor="lm")
+    text(draw, (470, 490), "approved outcome", GREEN, F_SMALL, anchor="lm")
+    text(draw, (792, 490), "→", MUTED, F_HEAD, anchor="rm")
+    return image
+
+
 def slide_replay():
     image, draw = base("Replay before authority", "Evaluate policies against historical state")
     text(draw, (52, 140), "sirq showcase.jsonl", CYAN, F_MONO)
-    rows = [("routine high CPU", "IGNORE", GREEN), ("transient API failure", "RECORD", AMBER), ("credential anomaly", "NOTIFY", RED), ("blocked agent", "NOTIFY", RED)]
+    rows = [("github-actions / routine job", "IGNORE", GREEN), ("docker / payments-api", "RECORD", AMBER), ("auth webhook / credential anomaly", "NOTIFY", RED), ("coding agent / permission wall", "NOTIFY", RED)]
     for i, (name, action, color) in enumerate(rows):
         y = 195 + i * 58
         rounded(draw, (52, y, 848, y + 43), PANEL, outline=(34, 60, 90), radius=9)
@@ -143,28 +166,29 @@ def slide_replay():
     return image
 
 
-def fade(a: Image.Image, b: Image.Image, steps=5):
-    for i in range(1, steps + 1):
-        yield Image.blend(a, b, i / steps)
-
-
+def transition(steps=4):
+    """Use a brief dark wipe instead of crossfading text-heavy slides."""
+    blank = Image.new("RGB", (W, H), BG)
+    draw = ImageDraw.Draw(blank)
+    draw.rectangle((0, 0, W, 8), fill=CYAN)
+    return [blank] * steps
 def main():
     output = ROOT / "docs" / "assets" / "sirq-showcase.gif"
     output.parent.mkdir(parents=True, exist_ok=True)
     decisions = build_runtime().process_many(read_jsonl(ROOT / "examples" / "showcase.jsonl"))
     images = [
-        slide_title(), slide_pipeline(),
-        slide_decision(decisions[0], "Routine noise stays quiet", "High utilization is not automatically a failure.", GREEN),
-        slide_decision(decisions[1], "Transient failure gets a reflex", "Context says retryable, not human-urgent.", AMBER),
-        slide_decision(decisions[2], "Success can still be suspicious", "A 200 response does not prove everything is fine.", RED),
-        slide_decision(decisions[3], "Blocked agents wake humans", "Escalate permission boundaries, not every status update.", PURPLE),
+        slide_title(), slide_pipeline(), slide_stack(),
+        slide_decision(decisions[0], "GitHub Actions noise stays quiet", "A scheduled job is busy, not broken.", GREEN),
+        slide_decision(decisions[1], "Docker failure gets classified", "A retryable service problem becomes a recordable signal.", AMBER),
+        slide_decision(decisions[2], "Webhook success can still be suspicious", "A 200 response does not prove everything is fine.", RED),
+        slide_decision(decisions[3], "Coding agents wake humans", "Escalate permission boundaries, not every status update.", PURPLE),
         slide_replay(),
     ]
     frames = []
     for index, current in enumerate(images):
         frames.extend([current] * 12)
         if index + 1 < len(images):
-            frames.extend(fade(current, images[index + 1], 5))
+            frames.extend(transition())
     frames[0].save(output, save_all=True, append_images=frames[1:], duration=100, loop=0, optimize=True)
     print(output)
     print(f"frames={len(frames)} size={output.stat().st_size}")
