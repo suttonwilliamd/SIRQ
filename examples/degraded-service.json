@@ -1,0 +1,16 @@
+{
+  "source": "jellyfin",
+  "type": "service_health",
+  "observations": {
+    "status": "running",
+    "failures_5m": 18,
+    "latency_p95_ms": 1880,
+    "retryable": true
+  },
+  "history": {
+    "normal_failures_5m": 2,
+    "normal_latency_p95_ms": 180
+  },
+  "dependencies": {"database": "healthy", "storage": "healthy"},
+  "context": {"user_present": true}
+}

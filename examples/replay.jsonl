@@ -1,0 +1,3 @@
+{"source":"api","type":"health","observations":{"status":"running","failures_5m":20,"retryable":true},"history":{"normal_failures_5m":1}}
+{"source":"api","type":"health","observations":{"status":"running","failures_5m":22,"retryable":true},"history":{"normal_failures_5m":1}}
+{"source":"ups","type":"power","observations":{"security_relevant":true,"message":"credential anomaly"}}

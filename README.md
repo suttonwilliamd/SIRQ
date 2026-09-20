@@ -19,7 +19,14 @@ SIRQ turns messy software state into structured semantic signals while keeping a
 ```bash
 python -m sirq.cli demo
 python -m sirq.cli evaluate examples/degraded-service.json
-python -m sirq.cli replay examples/replay.jsonl --policy examples/policy.json
+python -m sirq.cli replay examples/replay.jsonl
+python -m sirq.cli serve --port 8099
+```
+
+The daemon accepts `POST /events` with an observation JSON object and exposes `GET /health`. A stdin adapter is also available:
+
+```bash
+printf '%s\n' '{"source":"api","type":"health","observations":{"failures_5m":20},"history":{"normal_failures_5m":1}}' | python -m sirq.cli stdin
 ```
 
 The mock evaluator is intentionally transparent and deterministic so the system can be developed and tested without Jev API costs. Replace it later through the `SemanticEvaluator` protocol; the daemon and policy engine do not depend on a particular model provider.
