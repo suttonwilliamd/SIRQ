@@ -26,6 +26,8 @@ python -m sirq.cli serve --port 8099
 
 `showcase` runs four deliberately contrasting scenarios and creates a self-contained HTML report: routine high CPU during a scheduled job, a transient API failure, a successful-but-suspicious security event, and an agent blocked on human permission. Open the generated `sirq-showcase.html` in a browser to see the semantic decisions visually.
 
+See [docs/demo.md](docs/demo.md) for the developer demo talk track and live HTTP walkthrough.
+
 The daemon accepts `POST /events` with an observation JSON object and exposes `GET /health`. A stdin adapter is also available:
 
 ```bash
