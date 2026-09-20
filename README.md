@@ -20,8 +20,11 @@ SIRQ turns messy software state into structured semantic signals while keeping a
 python -m sirq.cli demo
 python -m sirq.cli evaluate examples/degraded-service.json
 python -m sirq.cli replay examples/replay.jsonl
+python -m sirq.cli showcase --output sirq-showcase.html
 python -m sirq.cli serve --port 8099
 ```
+
+`showcase` runs four deliberately contrasting scenarios and creates a self-contained HTML report: routine high CPU during a scheduled job, a transient API failure, a successful-but-suspicious security event, and an agent blocked on human permission. Open the generated `sirq-showcase.html` in a browser to see the semantic decisions visually.
 
 The daemon accepts `POST /events` with an observation JSON object and exposes `GET /health`. A stdin adapter is also available:
 

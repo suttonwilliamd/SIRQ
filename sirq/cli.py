@@ -11,6 +11,7 @@ from .policy import PolicyEngine, PolicyRule
 from .replay import read_jsonl
 from .runtime import JsonlRecorder, SIRQRuntime
 from .daemon import serve
+from .report import write_report
 
 
 def build_runtime(record: str | None = None, masked_below: int = 0) -> SIRQRuntime:
@@ -49,6 +50,25 @@ def cmd_replay(path: str, record: str | None) -> int:
     for decision in decisions:
         print_decision(decision)
     print(f"replayed={len(decisions)}", file=sys.stderr)
+    return 0
+
+
+def cmd_report(path: str, output: str) -> int:
+    runtime = build_runtime()
+    decisions = runtime.process_many(read_jsonl(path))
+    destination = write_report(decisions, output, title=f"SIRQ replay · {Path(path).name}")
+    print(destination.resolve())
+    return 0
+
+
+def cmd_showcase(output: str) -> int:
+    source = Path(__file__).resolve().parent.parent / "examples" / "showcase.jsonl"
+    runtime = build_runtime()
+    decisions = runtime.process_many(read_jsonl(source))
+    destination = write_report(decisions, output, title="SIRQ showcase")
+    print(destination.resolve())
+    for decision in decisions:
+        print_decision(decision)
     return 0
 
 
@@ -91,6 +111,11 @@ def main(argv: list[str] | None = None) -> int:
     replay = sub.add_parser("replay")
     replay.add_argument("path")
     replay.add_argument("--record")
+    report = sub.add_parser("report")
+    report.add_argument("path")
+    report.add_argument("--output", default="sirq-report.html")
+    showcase = sub.add_parser("showcase")
+    showcase.add_argument("--output", default="sirq-showcase.html")
     stdin = sub.add_parser("stdin")
     stdin.add_argument("--record")
     server = sub.add_parser("serve")
@@ -101,6 +126,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.command == "evaluate": return cmd_evaluate(args.path)
     if args.command == "replay": return cmd_replay(args.path, args.record)
+    if args.command == "report": return cmd_report(args.path, args.output)
+    if args.command == "showcase": return cmd_showcase(args.output)
     if args.command == "stdin": return cmd_stdin(args.record)
     if args.command == "serve": return cmd_serve(args.host, args.port, args.record)
     return cmd_demo()

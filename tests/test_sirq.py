@@ -8,6 +8,7 @@ from sirq.adapters import stdin_adapter
 from sirq.core import MockJevEvaluator, Observation, event_from_scores
 from sirq.policy import PolicyEngine, PolicyRule
 from sirq.runtime import JsonlRecorder, SIRQRuntime
+from sirq.report import render_html
 
 
 class SIRQTests(unittest.TestCase):
@@ -55,6 +56,22 @@ class SIRQTests(unittest.TestCase):
     def test_stdin_adapter(self):
         stream = io.StringIO('{"source":"x","type":"health"}\n')
         self.assertEqual(next(stdin_adapter(stream)).source, "x")
+
+    def test_blocked_agent_requires_human_attention(self):
+        observation = Observation("agent-17", "agent_state", {
+            "status": "blocked", "blocked": True, "user_impact": 0.8,
+            "message": "needs human permission",
+        })
+        event = event_from_scores(observation, MockJevEvaluator().evaluate(observation))
+        self.assertEqual(event.kind, "HUMAN_ATTENTION_REQUIRED")
+        self.assertGreaterEqual(event.priority, 5)
+
+    def test_report_contains_event_and_summary(self):
+        observation = Observation("api", "health", {"security_relevant": True})
+        runtime = SIRQRuntime(MockJevEvaluator(), PolicyEngine([]))
+        html = render_html([runtime.process(observation)])
+        self.assertIn("SECURITY_ANOMALY", html)
+        self.assertIn("Semantic replay report", html)
 
 
 if __name__ == "__main__":

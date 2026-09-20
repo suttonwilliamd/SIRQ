@@ -1,0 +1,4 @@
+{"source":"transcode","type":"service_health","observations":{"status":"running","cpu_percent":95,"scheduled_job":"nightly-video-transcode","failures_5m":0},"history":{"normal_failures_5m":1},"context":{"user_present":true}}
+{"source":"payments-api","type":"service_health","observations":{"status":"running","failures_5m":18,"latency_p95_ms":1880,"retryable":true},"history":{"normal_failures_5m":2,"normal_latency_p95_ms":180},"dependencies":{"database":"healthy","storage":"healthy"}}
+{"source":"auth-gateway","type":"security","observations":{"status":"running","security_relevant":true,"message":"successful request with credential anomaly"},"context":{"user_present":true}}
+{"source":"agent-17","type":"agent_state","observations":{"status":"blocked","blocked":true,"message":"needs human permission to continue","user_impact":0.8},"context":{"orchestrator":"night-shift"}}

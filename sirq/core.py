@@ -114,6 +114,7 @@ class MockJevEvaluator:
         latency = _number(data, "latency_p95_ms")
         baseline_latency = max(_number(history, "normal_latency_p95_ms", default=latency or 1.0), 1.0)
         stopped = bool(data.get("status") in {"stopped", "dead", "failed"})
+        blocked = bool(data.get("status") == "blocked" or data.get("blocked"))
         security = 1.0 if bool(data.get("security_relevant")) else 0.0
         if any(word in str(data.get("message", "")).lower() for word in ("intrusion", "malware", "credential", "ransom")):
             security = 1.0
@@ -125,8 +126,12 @@ class MockJevEvaluator:
         transient = 0.75 if bool(data.get("likely_transient", data.get("retryable", False))) else 0.15
         if stopped:
             transient = 0.2
+        if blocked:
+            transient = 0.0
         impact = max(0.0, min(1.0, _number(data, "user_impact", default=max(failure, latency_signal))))
         if stopped:
+            impact = max(impact, 0.75)
+        if blocked:
             impact = max(impact, 0.75)
         attention = max(security, impact * (1 - transient))
         return SemanticScores(
@@ -156,7 +161,7 @@ def event_from_scores(observation: Observation, scores: SemanticScores) -> SIRQE
     priority = round(max(scores.immediate_action, scores.human_attention_needed, scores.user_impact) * 7)
     return SIRQEvent(
         kind=kind, source=observation.source,
-        confidence=max(scores.abnormality, scores.security_relevant, scores.probable_failure),
+        confidence=max(scores.abnormality, scores.security_relevant, scores.probable_failure, scores.human_attention_needed),
         priority=priority, urgency=max(scores.immediate_action, scores.worsening),
         impact=scores.user_impact, recoverability=scores.recoverability,
         human_attention=scores.human_attention_needed, scores=scores,
