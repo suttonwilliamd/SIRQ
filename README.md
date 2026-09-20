@@ -24,6 +24,8 @@ python -m sirq.cli showcase --output sirq-showcase.html
 python -m sirq.cli serve --port 8099
 ```
 
+![SIRQ showcase](docs/assets/sirq-showcase.gif)
+
 `showcase` runs four deliberately contrasting scenarios and creates a self-contained HTML report: routine high CPU during a scheduled job, a transient API failure, a successful-but-suspicious security event, and an agent blocked on human permission. Open the generated `sirq-showcase.html` in a browser to see the semantic decisions visually.
 
 See [docs/demo.md](docs/demo.md) for the developer demo talk track and live HTTP walkthrough.
