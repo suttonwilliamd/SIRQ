@@ -10,6 +10,7 @@ from sirq.policy import PolicyEngine, PolicyRule
 from sirq.runtime import JsonlRecorder, SIRQRuntime
 from sirq.report import render_html
 from sirq.oncall import Recommendation, ShadowRuntime, read_alerts
+from sirq.review import ReviewRecord, apply_reviews, calculate_shadow_metrics
 from sirq.shadow_report import render_shadow_html
 
 
@@ -85,6 +86,34 @@ class SIRQTests(unittest.TestCase):
         report = render_shadow_html(records)
         self.assertIn("potential reduction", report)
         self.assertIn("ZERO", report)
+    def test_review_records_and_customer_metrics(self):
+        records = ShadowRuntime(MockJevEvaluator()).process_many(
+            read_alerts("examples/one-bad-night.jsonl")
+        )
+        for record in records:
+            record.alert.review = None
+        records = apply_reviews(records, [
+            ReviewRecord("alert-0203", "correct"),
+            ReviewRecord("alert-0251", "incorrect"),
+        ])
+        metrics = calculate_shadow_metrics(records)
+        self.assertEqual(metrics.alerts_observed, 9)
+        self.assertEqual(metrics.existing_interruptions, 9)
+        self.assertEqual(metrics.sirq_interruptions, 2)
+        self.assertEqual(metrics.duplicate_symptoms_avoided, 1)
+        self.assertEqual(metrics.reviewed, 2)
+        self.assertEqual(metrics.false_interruptions, 0)
+        self.assertEqual(metrics.missed_critical_events, 0)
+        self.assertEqual(metrics.production_actions_taken, 0)
+
+    def test_shadow_report_exposes_evaluation_metrics_and_reasons(self):
+        records = ShadowRuntime(MockJevEvaluator()).process_many(
+            read_alerts("examples/one-bad-night.jsonl")
+        )
+        html = render_shadow_html(records)
+        for label in ("false interruptions", "missed critical events", "duplicate symptoms avoided", "production actions taken"):
+            self.assertIn(label, html)
+        self.assertIn("duplicate symptom already represented by an interrupt", html)
 
 
 if __name__ == "__main__":

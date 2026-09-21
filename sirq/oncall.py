@@ -115,7 +115,7 @@ class ShadowRecord:
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "alert": asdict(self.alert),
+            "alert": {**asdict(self.alert), "review": self.alert.review.value if self.alert.review else None},
             "event": self.event.to_dict(),
             "assessment": asdict(self.assessment),
             "recommendation": self.recommendation.value,
