@@ -110,7 +110,7 @@ def slide_pipeline():
     return image
 
 
-def slide_decision(decision, headline, explanation, color):
+def slide_decision(decision, headline, explanation, color, fill_ratio=1.0):
     event = decision.event
     image, draw = base(headline, explanation)
     rounded(draw, (48, 135, 852, 520), PANEL, outline=color)
@@ -120,11 +120,15 @@ def slide_decision(decision, headline, explanation, color):
     text(draw, (82, 282), "semantic confidence", MUTED, F_SMALL)
     text(draw, (82, 308), f"{event.confidence:.2f}", TEXT, F_HEAD)
     draw.rounded_rectangle((220, 315, 770, 334), radius=9, fill=(32, 54, 78))
-    draw.rounded_rectangle((220, 315, 220 + int(550 * event.confidence), 334), radius=9, fill=color)
+    confidence_width = int(550 * event.confidence * fill_ratio)
+    if confidence_width:
+        draw.rounded_rectangle((220, 315, 220 + confidence_width, 334), radius=9, fill=color)
     text(draw, (82, 375), "human attention", MUTED, F_SMALL)
     text(draw, (82, 401), f"{event.human_attention:.2f}", TEXT, F_HEAD)
     draw.rounded_rectangle((220, 408, 770, 427), radius=9, fill=(32, 54, 78))
-    draw.rounded_rectangle((220, 408, 220 + int(550 * event.human_attention), 427), radius=9, fill=RED)
+    attention_width = int(550 * event.human_attention * fill_ratio)
+    if attention_width:
+        draw.rounded_rectangle((220, 408, 220 + attention_width, 427), radius=9, fill=RED)
     rounded(draw, (82, 462, 818, 500), PANEL_2, outline=color, radius=10)
     text(draw, (105, 481), f"deterministic decision:  {decision.handler}", color, F_BODY, anchor="lm")
     return image
@@ -166,32 +170,57 @@ def slide_replay():
     return image
 
 
-def transition(steps=4):
-    """Use a brief dark wipe instead of crossfading text-heavy slides."""
+def fade_via_blank(a: Image.Image, b: Image.Image, steps=6):
+    """Fade out, pause on dark, then fade in; never overlap readable text."""
     blank = Image.new("RGB", (W, H), BG)
-    draw = ImageDraw.Draw(blank)
-    draw.rectangle((0, 0, W, 8), fill=CYAN)
-    return [blank] * steps
+    for index in range(1, steps + 1):
+        yield Image.blend(a, blank, index / steps)
+    for index in range(1, steps + 1):
+        yield Image.blend(blank, b, index / steps)
+
+
+def static_slide(image: Image.Image, duration_ms: int = 3200):
+    return [(image, duration_ms)]
+
+
+def decision_sequence(decision, headline, explanation, color):
+    """Animate the semantic bars, then leave the decision readable on screen."""
+    frames = []
+    for fill_ratio in (0.0, 0.22, 0.48, 0.74, 1.0):
+        frames.append((slide_decision(decision, headline, explanation, color, fill_ratio), 140))
+    frames.append((slide_decision(decision, headline, explanation, color, 1.0), 3600))
+    return frames
+
+
 def main():
     output = ROOT / "docs" / "assets" / "sirq-showcase.gif"
     output.parent.mkdir(parents=True, exist_ok=True)
     decisions = build_runtime().process_many(read_jsonl(ROOT / "examples" / "showcase.jsonl"))
-    images = [
-        slide_title(), slide_pipeline(), slide_stack(),
-        slide_decision(decisions[0], "GitHub Actions noise stays quiet", "A scheduled job is busy, not broken.", GREEN),
-        slide_decision(decisions[1], "Docker failure gets classified", "A retryable service problem becomes a recordable signal.", AMBER),
-        slide_decision(decisions[2], "Webhook success can still be suspicious", "A 200 response does not prove everything is fine.", RED),
-        slide_decision(decisions[3], "Coding agents wake humans", "Escalate permission boundaries, not every status update.", PURPLE),
-        slide_replay(),
+    sequences = [
+        static_slide(slide_title(), 3600),
+        static_slide(slide_pipeline(), 3600),
+        static_slide(slide_stack(), 3800),
+        decision_sequence(decisions[0], "GitHub Actions noise stays quiet", "A scheduled job is busy, not broken.", GREEN),
+        decision_sequence(decisions[1], "Docker failure gets classified", "A retryable service problem becomes a recordable signal.", AMBER),
+        decision_sequence(decisions[2], "Webhook success can still be suspicious", "A 200 response does not prove everything is fine.", RED),
+        decision_sequence(decisions[3], "Coding agents wake humans", "Escalate permission boundaries, not every status update.", PURPLE),
+        static_slide(slide_replay(), 3800),
     ]
-    frames = []
-    for index, current in enumerate(images):
-        frames.extend([current] * 12)
-        if index + 1 < len(images):
-            frames.extend(transition())
-    frames[0].save(output, save_all=True, append_images=frames[1:], duration=100, loop=0, optimize=True)
+    frames, durations = [], []
+    previous = None
+    for sequence in sequences:
+        first = sequence[0][0]
+        if previous is not None:
+            for blended in fade_via_blank(previous, first):
+                frames.append(blended)
+                durations.append(90)
+        for image, duration in sequence:
+            frames.append(image)
+            durations.append(duration)
+        previous = sequence[-1][0]
+    frames[0].save(output, save_all=True, append_images=frames[1:], duration=durations, loop=0, optimize=True)
     print(output)
-    print(f"frames={len(frames)} size={output.stat().st_size}")
+    print(f"frames={len(frames)} size={output.stat().st_size} duration_ms={sum(durations)}")
 
 
 if __name__ == "__main__":
