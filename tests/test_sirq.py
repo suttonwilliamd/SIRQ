@@ -9,6 +9,8 @@ from sirq.core import MockJevEvaluator, Observation, event_from_scores
 from sirq.policy import PolicyEngine, PolicyRule
 from sirq.runtime import JsonlRecorder, SIRQRuntime
 from sirq.report import render_html
+from sirq.oncall import Recommendation, ShadowRuntime, read_alerts
+from sirq.shadow_report import render_shadow_html
 
 
 class SIRQTests(unittest.TestCase):
@@ -72,6 +74,17 @@ class SIRQTests(unittest.TestCase):
         html = render_html([runtime.process(observation)])
         self.assertIn("SECURITY_ANOMALY", html)
         self.assertIn("Semantic replay report", html)
+
+    def test_one_bad_night_shadow_mode_is_powerless_and_actionable(self):
+        records = ShadowRuntime(MockJevEvaluator()).process_many(
+            read_alerts("examples/one-bad-night.jsonl")
+        )
+        self.assertEqual(len(records), 9)
+        self.assertEqual(sum(r.recommendation == Recommendation.INTERRUPT for r in records), 2)
+        self.assertEqual(sum(r.alert.existing_outcome.paged_human for r in records), 9)
+        report = render_shadow_html(records)
+        self.assertIn("potential reduction", report)
+        self.assertIn("ZERO", report)
 
 
 if __name__ == "__main__":

@@ -116,13 +116,15 @@ class MockJevEvaluator:
         stopped = bool(data.get("status") in {"stopped", "dead", "failed"})
         blocked = bool(data.get("status") == "blocked" or data.get("blocked"))
         security = 1.0 if bool(data.get("security_relevant")) else 0.0
+        certificate_hours = _number(data, "certificate_hours_remaining", "cert_expiry_hours", default=999999.0)
+        certificate_due = certificate_hours <= 24
         if any(word in str(data.get("message", "")).lower() for word in ("intrusion", "malware", "credential", "ransom")):
             security = 1.0
         failure = max(0.0, min(1.0, (failures / baseline_failures - 1.0) / 8.0))
         if stopped:
             failure = max(failure, 0.95)
         latency_signal = max(0.0, min(1.0, (latency / baseline_latency - 1.0) / 10.0)) if latency else 0.0
-        abnormal = max(failure, latency_signal, security)
+        abnormal = max(failure, latency_signal, security, 0.75 if certificate_due else 0.0)
         transient = 0.75 if bool(data.get("likely_transient", data.get("retryable", False))) else 0.15
         if stopped:
             transient = 0.2
@@ -133,13 +135,13 @@ class MockJevEvaluator:
             impact = max(impact, 0.75)
         if blocked:
             impact = max(impact, 0.75)
-        attention = max(security, impact * (1 - transient))
+        attention = max(security, impact * (1 - transient), 0.85 if certificate_due else 0.0)
         return SemanticScores(
             routine_event=max(0.0, 1.0 - abnormal), abnormality=abnormal,
             probable_failure=max(failure, 0.8 * latency_signal), security_relevant=security,
             human_attention_needed=attention, likely_transient=transient,
-            worsening=max(0.0, min(1.0, _number(data, "worsening", default=latency_signal))),
-            immediate_action=max(security, 0.9 if stopped and impact > 0.8 else 0.0),
+            worsening=max(0.0, min(1.0, _number(data, "worsening", default=max(latency_signal, 0.6 if certificate_due else 0.0)))),
+            immediate_action=max(security, 0.9 if stopped and impact > 0.8 else 0.7 if certificate_due and data.get("human_action_possible", True) else 0.0),
             user_impact=impact, recoverability=0.85 if transient else 0.35,
         ).clamp()
 
