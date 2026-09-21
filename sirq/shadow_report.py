@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import html
-from collections import Counter
 from pathlib import Path
 from typing import Iterable
 
 from .oncall import Recommendation, ShadowRecord
+from .review import calculate_shadow_metrics
 
 
 def _pct(value: float) -> str:
@@ -21,16 +21,17 @@ def _time_label(value: str) -> str:
 
 def render_shadow_html(records: Iterable[ShadowRecord], title: str = "SIRQ shadow mode") -> str:
     records = list(records)
-    total = len(records)
-    existing_interruptions = sum(r.alert.existing_outcome.paged_human for r in records)
-    sirq_interruptions = sum(r.recommendation == Recommendation.INTERRUPT for r in records)
-    reduction = (existing_interruptions - sirq_interruptions) / existing_interruptions if existing_interruptions else 0.0
-    reviewed = [r for r in records if r.alert.review]
-    correct = sum(r.alert.review.value == "correct" for r in reviewed)
-    incorrect = sum(r.alert.review.value == "incorrect" for r in reviewed)
-    unsure = sum(r.alert.review.value == "unsure" for r in reviewed)
-    accuracy = correct / len(reviewed) if reviewed else 0.0
-    recommendation_counts = Counter(r.recommendation.value for r in records)
+    metrics = calculate_shadow_metrics(records)
+    total = metrics.alerts_observed
+    existing_interruptions = metrics.existing_interruptions
+    sirq_interruptions = metrics.sirq_interruptions
+    reduction = metrics.potential_reduction
+    reviewed = metrics.reviewed
+    correct = metrics.correct
+    incorrect = metrics.incorrect
+    unsure = metrics.unsure
+    accuracy = metrics.reviewed_accuracy
+
     rows = []
     for record in records:
         outcome = record.alert.existing_outcome
@@ -51,8 +52,8 @@ def render_shadow_html(records: Iterable[ShadowRecord], title: str = "SIRQ shado
 @media(max-width:800px) {{ .grid,.proof {{ grid-template-columns:repeat(2,1fr) }} .alert-row {{ grid-template-columns:70px 1fr 1fr }} .recommendation {{ grid-column:2 / -1 }} }} @media(max-width:520px) {{ .grid,.proof {{ grid-template-columns:1fr 1fr }} .alert-row {{ grid-template-columns:1fr 1fr }} .time {{ grid-column:1 / -1 }} }}
 </style></head><body><main>
 <div class="eyebrow">SIRQ · shadow mode · no production actions</div><h1>One bad night on call</h1><p class="lede">SIRQ watches the existing alert stream and records what it would have done. PagerDuty, Slack, Discord, and humans remain untouched.</p>
-<section class="grid"><div class="card"><span>alerts observed</span><b>{total}</b><small>incoming production alerts</small></div><div class="card warn"><span>existing interruptions</span><b>{existing_interruptions}</b><small>what the current path delivered</small></div><div class="card good"><span>SIRQ interruptions</span><b>{sirq_interruptions}</b><small>what SIRQ would wake a human for</small></div><div class="card good"><span>potential reduction</span><b>{_pct(reduction)}</b><small>shadow-mode estimate</small></div></section>
-<section class="proof"><div class="card"><h2>Would SIRQ have been right?</h2><span>{len(reviewed)} reviewed · {correct} correct · {incorrect} incorrect · {unsure} unsure</span><div class="bar"><span style="width:{round(accuracy*100)}%"></span></div><small>reviewed accuracy: {_pct(accuracy) if reviewed else 'not reviewed yet'}</small></div><div class="card"><h2>Production actions taken</h2><b style="color:var(--green);font-size:42px">ZERO</b><small>The first version only observes, recommends, and learns.</small></div></section>
+<section class="grid"><div class="card"><span>alerts observed</span><b>{total}</b><small>incoming production alerts</small></div><div class="card warn"><span>existing interruptions</span><b>{existing_interruptions}</b><small>what the current path delivered</small></div><div class="card good"><span>SIRQ interruptions</span><b>{sirq_interruptions}</b><small>what SIRQ would wake a human for</small></div><div class="card good"><span>potential reduction</span><b>{_pct(reduction)}</b><small>shadow-mode estimate</small></div><div class="card"><span>duplicate symptoms avoided</span><b>{metrics.duplicate_symptoms_avoided}</b><small>correlated repeats kept from paging again</small></div><div class="card {'hot' if metrics.false_interruptions else 'good'}"><span>false interruptions</span><b>{metrics.false_interruptions}</b><small>reviewed SIRQ interrupts marked incorrect</small></div><div class="card {'hot' if metrics.missed_critical_events else 'good'}"><span>missed critical events</span><b>{metrics.missed_critical_events}</b><small>critical events not recommended for interruption</small></div><div class="card good"><span>production actions taken</span><b>ZERO</b><small>shadow mode never changes production</small></div></section>
+<section class="proof"><div class="card"><h2>Would SIRQ have been right?</h2><span>{reviewed} reviewed · {correct} correct · {incorrect} incorrect · {unsure} unsure</span><div class="bar"><span style="width:{round(accuracy*100)}%"></span></div><small>reviewed accuracy: {_pct(accuracy) if reviewed else 'not reviewed yet'}</small></div><div class="card"><h2>Production actions taken</h2><b style="color:var(--green);font-size:42px">ZERO</b><small>The first version only observes, recommends, and learns.</small></div></section>
 <h2>Alert timeline</h2><section class="alert-list">{''.join(rows)}</section>
 <p class="footer-note">The business question is simple: how many times did the existing system wake a human, and how many of those interruptions were actually necessary? Shadow mode answers that without changing the production alert path.</p>
 </main></body></html>"""

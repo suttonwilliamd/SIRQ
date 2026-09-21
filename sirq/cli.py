@@ -13,6 +13,7 @@ from .runtime import JsonlRecorder, SIRQRuntime
 from .daemon import serve
 from .report import write_report
 from .oncall import ShadowRuntime, read_alerts
+from .review import calculate_shadow_metrics
 from .shadow_report import write_shadow_report
 
 
@@ -66,6 +67,8 @@ def cmd_report(path: str, output: str) -> int:
 def cmd_shadow_report(path: str, output: str) -> int:
     records = ShadowRuntime(MockJevEvaluator()).process_many(read_alerts(path))
     destination = write_shadow_report(records, output, title=f"SIRQ shadow mode · {Path(path).name}")
+    metrics = calculate_shadow_metrics(records)
+    print(json.dumps({"summary": "potential interruption reduction", **metrics.to_dict()}, sort_keys=True))
     print(destination.resolve())
     for record in records:
         print(json.dumps({
