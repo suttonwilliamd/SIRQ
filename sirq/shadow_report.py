@@ -12,6 +12,13 @@ def _pct(value: float) -> str:
     return f"{value * 100:.1f}%"
 
 
+def _time_label(value: str) -> str:
+    try:
+        return value.split("T", 1)[1][:5]
+    except IndexError:
+        return value[-8:]
+
+
 def render_shadow_html(records: Iterable[ShadowRecord], title: str = "SIRQ shadow mode") -> str:
     records = list(records)
     total = len(records)
@@ -29,7 +36,7 @@ def render_shadow_html(records: Iterable[ShadowRecord], title: str = "SIRQ shado
         outcome = record.alert.existing_outcome
         rows.append(f"""
         <article class="alert-row {'interrupt' if record.recommendation == Recommendation.INTERRUPT else ''}">
-          <div class="time">{html.escape(record.alert.observed_at[-8:])}</div>
+          <div class="time">{html.escape(_time_label(record.alert.observed_at))}</div>
           <div class="alert-main"><strong>{html.escape(record.alert.service)}</strong><span>{html.escape(record.event.kind)}</span><small>{html.escape(record.reason)}</small></div>
           <div class="existing"><span>{'🔔 paged' if outcome.paged_human else 'logged'}</span><small>{html.escape(outcome.destination)}</small></div>
           <div class="recommendation {record.recommendation.value.lower()}"><b>{record.recommendation.value.replace('_', ' ')}</b><small>confidence {record.event.confidence:.2f}</small></div>
