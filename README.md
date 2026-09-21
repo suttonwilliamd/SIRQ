@@ -9,6 +9,8 @@ SIRQ turns messy software state into structured semantic signals while keeping a
 - typed SIRQ events
 - policy routing with masking, debounce, and hysteresis
 - JSONL recording and replay
+- shadow mode that evaluates existing alerts without changing production
+- one-bad-night on-call report focused on interruptions avoided
 - safe handlers limited to `IGNORE`, `RECORD`, `DASHBOARD`, and `NOTIFY`
 - stdin and webhook-friendly adapters
 
@@ -21,8 +23,11 @@ python -m sirq.cli demo
 python -m sirq.cli evaluate examples/degraded-service.json
 python -m sirq.cli replay examples/replay.jsonl
 python -m sirq.cli showcase --output sirq-showcase.html
+python -m sirq.cli oncall-demo --output sirq-one-bad-night.html
 python -m sirq.cli serve --port 8099
 ```
+
+The on-call demo runs a simulated night of nine incoming production alerts through **Shadow Mode**. It does not suppress, notify, restart, or modify anything in production. It generates a customer-facing report answering the practical question: how many times did the existing alert path wake a human, and how many interruptions would SIRQ recommend instead?
 
 ![SIRQ showcase](docs/assets/sirq-showcase.gif)
 

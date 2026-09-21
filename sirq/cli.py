@@ -12,6 +12,8 @@ from .replay import read_jsonl
 from .runtime import JsonlRecorder, SIRQRuntime
 from .daemon import serve
 from .report import write_report
+from .oncall import ShadowRuntime, read_alerts
+from .shadow_report import write_shadow_report
 
 
 def build_runtime(record: str | None = None, masked_below: int = 0) -> SIRQRuntime:
@@ -59,6 +61,25 @@ def cmd_report(path: str, output: str) -> int:
     destination = write_report(decisions, output, title=f"SIRQ replay · {Path(path).name}")
     print(destination.resolve())
     return 0
+
+
+def cmd_shadow_report(path: str, output: str) -> int:
+    records = ShadowRuntime(MockJevEvaluator()).process_many(read_alerts(path))
+    destination = write_shadow_report(records, output, title=f"SIRQ shadow mode · {Path(path).name}")
+    print(destination.resolve())
+    for record in records:
+        print(json.dumps({
+            "event_id": record.alert.event_id,
+            "service": record.alert.service,
+            "recommendation": record.recommendation.value,
+            "reason": record.reason,
+        }, sort_keys=True))
+    return 0
+
+
+def cmd_oncall_demo(output: str) -> int:
+    source = Path(__file__).resolve().parent.parent / "examples" / "one-bad-night.jsonl"
+    return cmd_shadow_report(str(source), output)
 
 
 def cmd_showcase(output: str) -> int:
@@ -114,6 +135,11 @@ def main(argv: list[str] | None = None) -> int:
     report = sub.add_parser("report")
     report.add_argument("path")
     report.add_argument("--output", default="sirq-report.html")
+    shadow = sub.add_parser("shadow-report")
+    shadow.add_argument("path")
+    shadow.add_argument("--output", default="sirq-shadow-report.html")
+    oncall = sub.add_parser("oncall-demo")
+    oncall.add_argument("--output", default="sirq-one-bad-night.html")
     showcase = sub.add_parser("showcase")
     showcase.add_argument("--output", default="sirq-showcase.html")
     stdin = sub.add_parser("stdin")
@@ -127,6 +153,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "evaluate": return cmd_evaluate(args.path)
     if args.command == "replay": return cmd_replay(args.path, args.record)
     if args.command == "report": return cmd_report(args.path, args.output)
+    if args.command == "shadow-report": return cmd_shadow_report(args.path, args.output)
+    if args.command == "oncall-demo": return cmd_oncall_demo(args.output)
     if args.command == "showcase": return cmd_showcase(args.output)
     if args.command == "stdin": return cmd_stdin(args.record)
     if args.command == "serve": return cmd_serve(args.host, args.port, args.record)
