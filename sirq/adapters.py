@@ -22,3 +22,30 @@ def observations_from_files(paths: Iterable[str]) -> Iterator[Observation]:
     for path in paths:
         with open(path, encoding="utf-8") as handle:
             yield Observation.from_dict(json.load(handle))
+
+
+from .alert_adapters import (
+    adapt_datadog,
+    adapt_generic_webhook,
+    adapt_grafana_alertmanager,
+    adapt_pagerduty,
+    adapt_sentry,
+    replay_jsonl,
+)
+from .alerts import AlertValidationError, ExistingOutcome, IncomingAlert
+
+
+__all__ = [
+    "AlertValidationError",
+    "ExistingOutcome",
+    "IncomingAlert",
+    "adapt_datadog",
+    "adapt_generic_webhook",
+    "adapt_grafana_alertmanager",
+    "adapt_pagerduty",
+    "adapt_sentry",
+    "observations_from_files",
+    "replay_jsonl",
+    "stdin_adapter",
+    "webhook_payload",
+]
