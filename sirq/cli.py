@@ -64,11 +64,15 @@ def cmd_report(path: str, output: str) -> int:
     return 0
 
 
-def cmd_shadow_report(path: str, output: str) -> int:
+DEMO_PROVENANCE = "Offline simulation · deterministic mock · synthetic fixtures · no production actions"
+
+
+def cmd_shadow_report(path: str, output: str, *, synthetic_demo: bool = False) -> int:
     records = ShadowRuntime(MockJevEvaluator()).process_many(read_alerts(path))
-    destination = write_shadow_report(records, output, title=f"SIRQ shadow mode · {Path(path).name}")
+    destination = write_shadow_report(records, output, title=f"SIRQ shadow mode · {Path(path).name}", synthetic_demo=synthetic_demo,
+                                      provenance=DEMO_PROVENANCE if synthetic_demo else "Deterministic mock evaluator · input provenance unknown; not verified as synthetic.")
     metrics = calculate_shadow_metrics(records)
-    print(json.dumps({"summary": "potential interruption reduction", **metrics.to_dict()}, sort_keys=True))
+    print(json.dumps({"summary": "fixture-only recommendation difference" if synthetic_demo else "input recommendation difference", **metrics.to_dict()}, sort_keys=True))
     print(destination.resolve())
     for record in records:
         print(json.dumps({
@@ -82,14 +86,14 @@ def cmd_shadow_report(path: str, output: str) -> int:
 
 def cmd_oncall_demo(output: str) -> int:
     source = Path(__file__).resolve().parent.parent / "examples" / "one-bad-night.jsonl"
-    return cmd_shadow_report(str(source), output)
+    return cmd_shadow_report(str(source), output, synthetic_demo=True)
 
 
 def cmd_showcase(output: str) -> int:
     source = Path(__file__).resolve().parent.parent / "examples" / "showcase.jsonl"
     runtime = build_runtime()
     decisions = runtime.process_many(read_jsonl(source))
-    destination = write_report(decisions, output, title="SIRQ showcase")
+    destination = write_report(decisions, output, title="SIRQ showcase", provenance=DEMO_PROVENANCE, synthetic_demo=True)
     print(destination.resolve())
     for decision in decisions:
         print_decision(decision)
