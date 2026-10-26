@@ -47,6 +47,24 @@ The mock evaluator is intentionally transparent and deterministic so the system 
 
 The MVP does not execute shell commands, restart services, modify files, change networking, or grant an evaluator tool access. Policies only select predefined recording/notification outcomes.
 
+### Offline report text
+
+Replay and shadow reports render external strings as escaped HTML text, not as
+markup or clickable links. This includes report titles, service/source names,
+policy reasons, destinations, and displayed observation evidence. Shadow report
+timestamps are shortened for display and then escaped. Review notes and reviewer
+names are not included in the report; only review status contributes to metrics.
+The templates contain static CSS, numeric bar widths, and enum-derived classes;
+they do not embed alert JSON or JavaScript. Keep escaping at the output context
+when adding fields: HTML text escaping is not a substitute for URL validation or
+safe JSON serialization if future reports introduce links or scripts.
+
+`tests/test_report_safety.py` exercises both real renderers and UTF-8 file writers
+with synthetic hostile text, checks parsed tags/attributes against ordinary
+reports, and checks that displayed content retains its literal meaning. These
+stdlib HTML-source tests are not an all-browser security proof. No report styling
+or production/shadow behavior is changed by these tests.
+
 ## Development
 
 ```bash
