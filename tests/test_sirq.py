@@ -84,7 +84,7 @@ class SIRQTests(unittest.TestCase):
         self.assertEqual(sum(r.recommendation == Recommendation.INTERRUPT for r in records), 2)
         self.assertEqual(sum(r.alert.existing_outcome.paged_human for r in records), 9)
         report = render_shadow_html(records)
-        self.assertIn("potential reduction", report)
+        self.assertIn("input recommendation difference", report)
         self.assertIn("ZERO", report)
     def test_review_records_and_customer_metrics(self):
         records = ShadowRuntime(MockJevEvaluator()).process_many(
@@ -111,7 +111,7 @@ class SIRQTests(unittest.TestCase):
             read_alerts("examples/one-bad-night.jsonl")
         )
         html = render_shadow_html(records)
-        for label in ("false interruptions", "missed critical events", "duplicate symptoms avoided", "production actions taken"):
+        for label in ("false interruptions", "missed critical events", "duplicate symptom recommendations", "production actions taken"):
             self.assertIn(label, html)
         self.assertIn("duplicate symptom already represented by an interrupt", html)
 

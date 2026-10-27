@@ -27,7 +27,7 @@ python -m sirq.cli oncall-demo --output sirq-one-bad-night.html
 python -m sirq.cli serve --port 8099
 ```
 
-The on-call demo runs a simulated night of nine incoming production alerts through **Shadow Mode**. It does not suppress, notify, restart, or modify anything in production. It generates a customer-facing report answering the practical question: how many times did the existing alert path wake a human, and how many interruptions would SIRQ recommend instead?
+The on-call demo runs an **offline simulation** of nine synthetic alert fixtures through **Shadow Mode**, using the deterministic mock evaluator. It does not suppress, notify, restart, or modify anything in production. The detachable HTML identifies the synthetic provenance and compares fixture outcomes with recommendations. Its 77.8% recommendation difference and 88.9% fixture-label agreement are fixture arithmetic, not measured production reduction or independent accuracy. Mock scores are not calibrated confidence; permitted policy outcomes are not actions executed.
 
 ![SIRQ showcase](docs/assets/sirq-showcase.gif)
 
@@ -46,6 +46,28 @@ The mock evaluator is intentionally transparent and deterministic so the system 
 ## Safety boundary
 
 The MVP does not execute shell commands, restart services, modify files, change networking, or grant an evaluator tool access. Policies only select predefined recording/notification outcomes.
+
+### Offline report presentation
+
+`showcase` and `oncall-demo` visibly declare offline simulation, deterministic mock, synthetic fixtures and no production actions. Generic `report` and `shadow-report` accept arbitrary files and therefore declare input provenance unknown, even when passed the same tracked example file. The renderers/writers preserve positional arguments and accept optional keyword-only `provenance` (escaped text) and `synthetic_demo` (explicit demo metric vocabulary). Neither changes recommendation math. At 320px, summaries, proof and timelines stack into one column; long labels wrap instead of being clipped. Reports are static documents without interactive controls.
+
+### Offline report text
+
+Replay and shadow reports render external strings as escaped HTML text, not as
+markup or clickable links. This includes report titles, service/source names,
+policy reasons, destinations, and displayed observation evidence. Shadow report
+timestamps are shortened for display and then escaped. Review notes and reviewer
+names are not included in the report; only review status contributes to metrics.
+The templates contain static CSS, numeric bar widths, and enum-derived classes;
+they do not embed alert JSON or JavaScript. Keep escaping at the output context
+when adding fields: HTML text escaping is not a substitute for URL validation or
+safe JSON serialization if future reports introduce links or scripts.
+
+`tests/test_report_safety.py` exercises both real renderers and UTF-8 file writers
+with synthetic hostile text, checks parsed tags/attributes against ordinary
+reports, and checks that displayed content retains its literal meaning. These
+stdlib HTML-source tests are not an all-browser security proof. No report styling
+or production/shadow behavior is changed by these tests.
 
 ## Development
 
